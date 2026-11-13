@@ -16,6 +16,7 @@ Press play and the album streams while every sample lights up at the moment it s
 
 - **The braid** — each sample is a strand on a chart whose vertical axis is the *source recording's year*, so you can watch the decades stack up inside a passage. Samples are color-coded by decade.
 - **Right Now panel** — a crate-card listing of everything active at the playhead, with per-sample progress.
+- **Spotlight** — click any sample (its strand, its Right Now card, or its list row) to spotlight it while the rest of the braid ghosts around it; click it again to release.
 - **Artist search** — type a name and jump to any moment they appear.
 - **Synced list view** — all timed samples in album order, grouped by the album's 12 segments, following playback.
 - **Decade filters** — the legend chips double as filters.
