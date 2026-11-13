@@ -297,8 +297,8 @@
     <div class="chartcol">
       <div id="chartView">
         <div class="chartwrap">
-          <canvas id="braid" role="img" aria-label="Chart of all 354 samples: album time across, source year down. Tap to jump to that moment; tap a strand to spotlight it."></canvas>
-          <div class="chartcap"><span>← album time · tap the braid to jump · tap a strand to spotlight it →</span><span>source year ↕</span></div>
+          <canvas id="braid" role="img" aria-label="Chart of all 354 samples: album time across, source year down. Tap or drag to jump the song to that moment."></canvas>
+          <div class="chartcap"><span>← album time · tap or drag the braid to jump to that moment →</span><span>source year ↕</span></div>
         </div>
         <div class="segstrip" id="segStrip" role="group" aria-label="Album segments"></div>
       </div>
@@ -323,7 +323,7 @@
 
   <footer>
     <p><b>All Day</b> © 2010 Girl Talk (Gregg Gillis) / Illegal Art, released under a Creative Commons Attribution-NonCommercial license. Audio streams from the Internet Archive.</p>
-    <p><b>Two ways to tap a sample:</b> tap its strand in the braid to spotlight it, or tap its Right Now card / list row to open that song on YouTube in a new tab — the official artist or official Topic video where one exists — while <i>All Day</i> keeps playing here.</p>
+    <p><b>Two ways to tap:</b> tap or drag anywhere on the braid to jump the song to that moment, or tap a sample's Right Now card / list row to open that song on YouTube in a new tab — the official artist or official Topic video where one exists — while <i>All Day</i> keeps playing here.</p>
     <p>Sample identities from Illegal Art's published list. Sample timings: the community breakdown lineage — Travis McLeskey (AllDaySamples), Benjamin Rahn (Mashup Breakdown), Matt Adereth (All Day, Annotated) — factual timing data reused with credit; 354 of the 372 documented samples carry community timings.</p>
     <p>Built as a tribute and a repair: the three original annotation sites are gone, so this one is designed to be simple enough to survive.</p>
   </footer>
@@ -500,7 +500,7 @@ document.addEventListener("keydown",function(e){
 function rowHTML(s,noYt){
   var d=DECMAP[decadeOf(s[2])];
   return '<span class="tm">'+fmt(s[0])+'</span><span class="dot" style="background:'+d.color+'"></span>'+
-    '<span class="nm"><b>'+esc(s[3])+'</b> <span>— '+esc(s[4])+'</span></span><span class="yr">'+s[2]+'</span>'+(noYt?'':'<span class="yt">YouTube &#8599;</span>');
+    '<span class="nm"><b>'+esc(s[3])+'</b> <span>— '+esc(s[4])+'</span></span><span class="yr">'+s[2]+'</span>'+(noYt?'':'<span class="yt">YouTube</span>');
 }
 (function buildList(){
   var host=$("listScroll");
@@ -644,10 +644,11 @@ function draw(){
   ctx.fillStyle="#fff"; ctx.fillText(lab,lx,10);
 }
 
-/* canvas: drag or tap empty space seeks; tap a strand spotlights it.
-   Pointerdown does not seek immediately — the seek only happens once
-   a drag is under way, or on release when the tap hit no strand — so
-   a strand tap never moves the playhead. */
+/* canvas: tap or drag anywhere on the braid seeks — clicking the
+   timeline advances the song to that exact point, whether the tap
+   lands on a strand or on empty space. Pointerdown does not seek
+   immediately — the seek happens once a drag is under way, or on
+   release for a plain tap. */
 (function(){
   var dragging=false, moved=false, downX=0, downY=0;
   function toTime(e){
@@ -664,9 +665,7 @@ function draw(){
   canvas.addEventListener("pointerup",function(e){
     if(!dragging)return; dragging=false;
     if(moved)return; /* a drag already sought */
-    var hit=hitSample(e.clientX,e.clientY);
-    if(hit!==null){toggleFocus(hit);return;} /* spotlight; playback untouched */
-    seek(toTime(e),false);
+    seek(toTime(e),false); /* a tap advances the song to that point */
   });
   canvas.addEventListener("pointercancel",function(){dragging=false;});
 })();
@@ -686,7 +685,7 @@ function buildCards(now,actives){
       '<span class="artist">'+esc(s[3])+'</span><br><span class="title">“'+esc(s[4])+'”</span>'+
       '<span class="sub"><span class="yr">'+s[2]+'</span><span>'+meta.label+'</span><span>'+winTxt+'</span></span>'+
       '<span class="focuslab">FOCUSED — spotlighted from the timeline</span>'+
-      '<span class="ytlab"><span class="ytplay">&#9654;</span> Open on YouTube &#8599; — new tab, music keeps playing</span>'+
+      '<span class="ytlab">YouTube</span>'+
       '<span class="bar"><i style="background:'+col+'"></i></span>'+
       '<span class="inlab"></span></span>';
     b.setAttribute("aria-label",(opts.focused?"Focused: ":isNext?"Up next: ":"Now playing: ")+s[3]+", "+s[4]+". Click to open this song on YouTube in a new tab.");
