@@ -16,8 +16,8 @@ Press play and the album streams while every sample lights up at the moment it s
 
 - **The braid** — each sample is a strand on a chart whose vertical axis is the *source recording's year*, so you can watch the decades stack up inside a passage. Samples are color-coded by decade.
 - **Right Now panel** — a crate-card listing of everything active at the playhead, with per-sample progress.
-- **Hear the original** — click a sample's Right Now card or its list row and that sample's song opens on YouTube in a new tab, while the album keeps playing untouched. 328 of the 354 timed samples link to a verified official artist, VEVO, or official Topic-channel video; the rest open a pre-filled YouTube search for the exact artist and title.
-- **Spotlight** — tap a sample's strand on the timeline to spotlight it while the rest of the braid ghosts around it; tap it again to release.
+- **Hear the original** — every Right Now card and list row carries a plain "YouTube" link; click it and that sample's song opens on YouTube in a new tab, while the album keeps playing untouched. 328 of the 354 timed samples link to a verified official artist, VEVO, or official Topic-channel video; the rest open a pre-filled YouTube search for the exact artist and title.
+- **Timeline seek** — click anywhere on the timeline (the braid) to jump the album straight to that point.
 - **Artist search** — type a name and jump to any moment they appear.
 - **Synced list view** — all timed samples in album order, grouped by the album's 12 segments, following playback.
 - **Decade filters** — the legend chips double as filters.
