@@ -99,8 +99,17 @@
   /* ---------- stage ---------- */
   .stage{display:grid;grid-template-columns:minmax(0,1fr) 348px;gap:16px;margin-top:16px;align-items:start}
   .chartcol{min-width:0}
-  .chartwrap{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:10px 8px 6px}
-  #braid{display:block;width:100%;height:430px;cursor:crosshair;touch-action:pan-y;border-radius:6px}
+  .chartwrap{position:relative;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:10px 8px 6px}
+  #braid{display:block;width:100%;height:540px;cursor:crosshair;touch-action:pan-y;border-radius:6px}
+  #braidTip{position:absolute;z-index:6;pointer-events:none;max-width:min(330px,82%);
+    background:rgba(11,14,19,.96);border:1px solid var(--line2);border-radius:9px;
+    padding:8px 11px 9px;box-shadow:0 8px 26px rgba(0,0,0,.55)}
+  #braidTip[hidden]{display:none}
+  #braidTip .tt-name{font-size:14px;line-height:1.3}
+  #braidTip .tt-name b{font-weight:700}
+  #braidTip .tt-name span{color:var(--dim)}
+  #braidTip .tt-meta{font-family:var(--mono);font-size:11px;color:var(--faint);margin-top:3px}
+  #braidTip .tt-meta .yr{color:var(--ink)}
   .chartcap{display:flex;justify-content:space-between;gap:10px;padding:6px 6px 4px;
     font-family:var(--mono);font-size:11px;color:var(--faint)}
   .segstrip{display:flex;gap:2px;margin-top:10px}
@@ -210,7 +219,7 @@
     .stage{grid-template-columns:minmax(0,1fr)}
     .nowrail{position:static;order:-1}
     .chartcol{order:0}
-    #braid{height:350px}
+    #braid{height:430px}
     body{padding-bottom:104px}
     .transport{position:fixed;left:0;right:0;bottom:0;z-index:50;margin:0;border-radius:0;
       border-left:0;border-right:0;border-bottom:0;padding:10px 12px calc(10px + env(safe-area-inset-bottom));
@@ -297,8 +306,9 @@
     <div class="chartcol">
       <div id="chartView">
         <div class="chartwrap">
-          <canvas id="braid" role="img" aria-label="Chart of all 354 samples: album time across, source year down, with each decade's band height sized by how much sampled music comes from that decade. Tap or drag to jump the song to that moment."></canvas>
-          <div class="chartcap"><span>← album time · tap or drag the braid to jump to that moment →</span><span>source year ↕ · bigger band = more music from that decade</span></div>
+          <canvas id="braid" role="img" aria-label="Chart of all 354 samples: album time across, source year down, with each decade's band height sized by how much sampled music comes from that decade; the 2010s band is stretched taller because all of its samples come from a single year. Hover a strand to see the sample's name. Tap or drag to jump the song to that moment."></canvas>
+          <div id="braidTip" hidden></div>
+          <div class="chartcap"><span>← album time · tap or drag the braid to jump to that moment · hover a strand for its name →</span><span>source year ↕ · bigger band = more music · 2010s spread out — 44 samples, one year</span></div>
         </div>
         <div class="segstrip" id="segStrip" role="group" aria-label="Album segments"></div>
       </div>
@@ -557,6 +567,7 @@ $("viewList").addEventListener("click",function(){setView(true);});
 $("followToggle").addEventListener("change",function(e){followOn=e.target.checked;if(followOn){lastSig="__";refresh();}});
 /* ---------------- canvas braid ---------------- */
 var canvas=$("braid"), ctx=canvas.getContext("2d");
+var strandGeom=[];   /* per-sample {idx,x1,x2,y,one} from the latest draw, for hover */
 var cw=0, ch=0;
 var PADL=48, PADR=10, PADT=14, PADB=26;
 function resizeCanvas(){
@@ -587,11 +598,32 @@ function computeBands(){
     stats[d.k]={dur:dur,minY:minY,maxY:maxY}; tot+=dur;
   });
   var MINH=Math.min(20,H*0.06);
-  var rest=H-MINH*DECADES.length, y=PADT;
+  var rest=H-MINH*DECADES.length;
+  var heights={};
+  DECADES.forEach(function(d){
+    var st=stats[d.k], share=tot?st.dur/tot:0;
+    heights[d.k]=MINH+rest*share;
+  });
+  /* Spread the 2010s out: all 44 of its samples come from a single year
+     (2010), so its duration share alone leaves them stacked on one line.
+     Stretch its band to at least 27% of the chart height, taking the
+     extra from the other bands' room above the floor — the space freed
+     by the near-empty 1950s/60s bands below. */
+  var target2010=H*0.27;
+  if(heights[2010]<target2010){
+    var extra=target2010-heights[2010], excess=0;
+    DECADES.forEach(function(d){if(d.k!==2010)excess+=Math.max(0,heights[d.k]-MINH);});
+    if(excess>0){
+      DECADES.forEach(function(d){
+        if(d.k!==2010)heights[d.k]-=extra*Math.max(0,heights[d.k]-MINH)/excess;
+      });
+      heights[2010]=target2010;
+    }
+  }
+  var y=PADT;
   BANDS={};
   DECADES.slice().reverse().forEach(function(d){
-    var st=stats[d.k], share=tot?st.dur/tot:0;
-    var h=MINH+rest*share;
+    var st=stats[d.k], share=tot?st.dur/tot:0, h=heights[d.k];
     BANDS[d.k]={top:y,bottom:y+h,h:h,share:share,minY:st.minY,maxY:st.maxY};
     y+=h;
   });
@@ -603,6 +635,31 @@ function Y(year){
   var f=(year-b.minY+0.5)/span;
   f=Math.max(0,Math.min(1,f));
   return b.bottom-f*b.h;
+}
+/* Per-sample vertical position inside its year's slice of a band.
+   Samples that share a year get evenly spaced slots across that slice
+   (assigned in a fixed hashed order, so the layout never changes between
+   redraws) instead of all sitting on the slice's centre line. For the
+   2010s the slice IS the whole stretched band, so its 44 strands fan
+   out across the full band height. */
+function strandHash(i){var x=Math.sin((i+1)*127.1+311.7)*43758.5453;return x-Math.floor(x);}
+var YFRAC=new Array(SAMPLES.length);
+(function computeYFrac(){
+  var groups={};
+  SAMPLES.forEach(function(s,i){var k=decadeOf(s[2])+"-"+s[2];(groups[k]=groups[k]||[]).push(i);});
+  Object.keys(groups).forEach(function(k){
+    var arr=groups[k].slice().sort(function(a,b){return strandHash(a)-strandHash(b);});
+    arr.forEach(function(idx,rank){YFRAC[idx]=(rank+0.5)/arr.length;});
+  });
+})();
+function sampleY(s,i){
+  var b=BANDS&&BANDS[decadeOf(s[2])];
+  if(!b)return Y(s[2]);
+  var span=Math.max(1,b.maxY-b.minY+1);
+  var sliceH=b.h/span;
+  var sliceTop=b.bottom-(s[2]-b.minY+1)*sliceH;
+  var y=sliceTop+(YFRAC[i]||0.5)*sliceH;
+  return Math.max(b.top+3,Math.min(b.bottom-3,y));
 }
 function draw(){
   if(cw<10)return;
@@ -638,6 +695,13 @@ function draw(){
     if(major&&t<4200)ctx.fillText(fmt(t),x,ch-PADB+13);
   }
   ctx.fillText("71:12",X(ALBUM_END)-14,ch-PADB+13);
+  /* strand geometry for hover hit-testing (kept in sync with the passes
+     below — same x/y maths) */
+  strandGeom=[];
+  for(var gi=0;gi<SAMPLES.length;gi++){
+    var gs=SAMPLES[gi];
+    strandGeom.push({idx:gi,x1:X(gs[0]),x2:X(Math.max(gs[1],gs[0]+2)),y:sampleY(gs,gi),one:isOneShot(gs)});
+  }
   /* strands: inactive pass, then active pass, then the focused strand on top */
   var pulse=0.5+0.5*Math.sin(Date.now()/300);
   for(var pass=0;pass<3;pass++){
@@ -651,10 +715,7 @@ function draw(){
       var dec=decadeOf(s[2]), meta=DECMAP[dec], muted=!!mutedDecades[dec];
       var col=muted?"#596274":meta.color;
       var alpha, x1=X(s[0]), x2=X(Math.max(s[1],s[0]+2));
-      var jit=(((i*37)%7)-3);
-      var y=Y(s[2])+jit;
-      var band=BANDS&&BANDS[dec];
-      if(band)y=Math.max(band.top+3,Math.min(band.bottom-3,y));
+      var y=sampleY(s,i);
       if(isFoc){ alpha=1; col=meta.color; }
       else if(focusIdx!==null){ alpha=act?0.12:0.10; }
       else if(searchSet){ alpha=searchSet[i]?(act?1:0.85):(act?0.25:0.05); }
@@ -711,6 +772,57 @@ function draw(){
     seek(toTime(e),false); /* a tap advances the song to that point */
   });
   canvas.addEventListener("pointercancel",function(){dragging=false;});
+})();
+
+/* canvas hover: moving the mouse over a strand shows that sample's name
+   in a tooltip beside the cursor. Hover only — it never seeks, pauses,
+   or opens anything (click/drag seek lives in the handler above), and
+   empty chart space shows nothing. Touch pointers don't hover, so they
+   never see it. */
+(function(){
+  var tip=$("braidTip"), wrap=canvas.parentNode, hoverIdx=null;
+  function hide(){hoverIdx=null;tip.hidden=true;}
+  function hit(mx,my){
+    var best=null,bestD=Infinity;
+    for(var i=0;i<strandGeom.length;i++){
+      var g=strandGeom[i],d;
+      if(g.one){
+        var dx=mx-g.x1,dy=my-g.y; d=Math.sqrt(dx*dx+dy*dy);
+        if(d>8)continue;
+      }else{
+        if(mx<g.x1-2||mx>g.x2+2)continue;
+        d=Math.abs(my-g.y);
+        if(d>6)continue;
+      }
+      if(d<bestD){bestD=d;best=g.idx;}
+    }
+    return best;
+  }
+  canvas.addEventListener("pointermove",function(e){
+    if(e.pointerType&&e.pointerType!=="mouse"){hide();return;}
+    if(e.buttons){hide();return;} /* mid-drag scrub: no tooltip */
+    var r=canvas.getBoundingClientRect();
+    var idx=hit(e.clientX-r.left,e.clientY-r.top);
+    if(idx===null){hide();return;}
+    if(idx!==hoverIdx){
+      hoverIdx=idx;
+      var s=SAMPLES[idx], meta=DECMAP[decadeOf(s[2])];
+      var winTxt=isOneShot(s)?fmt(s[0])+" · one-shot":fmt(s[0])+"–"+fmt(s[1])+" in the album";
+      tip.innerHTML='<div class="tt-name"><b>'+esc(s[3])+'</b> <span>— &ldquo;'+esc(s[4])+'&rdquo;</span></div>'+
+        '<div class="tt-meta"><span class="yr">'+s[2]+'</span> · '+esc(meta.label)+' · '+winTxt+'</div>';
+    }
+    tip.hidden=false;
+    /* position beside the cursor, inside the chart card; flip/clamp at edges */
+    var wr=wrap.getBoundingClientRect();
+    var lx=e.clientX-wr.left+16, ty=e.clientY-wr.top+16;
+    var tw=tip.offsetWidth, th=tip.offsetHeight;
+    if(lx+tw>wr.width-6)lx=e.clientX-wr.left-tw-12;
+    if(ty+th>wr.height-6)ty=e.clientY-wr.top-th-12;
+    tip.style.left=Math.max(4,lx)+"px";
+    tip.style.top=Math.max(4,ty)+"px";
+  });
+  canvas.addEventListener("pointerleave",hide);
+  canvas.addEventListener("pointerdown",hide);
 })();
 
 /* ---------------- right now cards ---------------- */
