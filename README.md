@@ -14,7 +14,7 @@ All Day Anatomy is a tribute to those three and a repair of what they did: it it
 
 Press play and the album streams while every sample lights up at the moment it sounds:
 
-- **The braid** — each sample is a strand on a chart whose vertical axis is the *source recording's year*, so you can watch the decades stack up inside a passage. Samples are color-coded by decade.
+- **The braid** — each sample is a strand on a chart whose vertical axis is the *source recording's year*, so you can watch the decades stack up inside a passage. Samples are color-coded by decade, and each decade's band height is proportional to that era's share of the album's sampled music (by sampled seconds) — crowded eras get more room, sparse ones take less.
 - **Right Now panel** — a crate-card listing of everything active at the playhead, with per-sample progress.
 - **Hear the original** — every Right Now card and list row carries a plain "YouTube" link; click it and that sample's song opens on YouTube in a new tab, while the album keeps playing untouched. 328 of the 354 timed samples link to a verified official artist, VEVO, or official Topic-channel video; the rest open a pre-filled YouTube search for the exact artist and title.
 - **Timeline seek** — click anywhere on the timeline (the braid) to jump the album straight to that point.
